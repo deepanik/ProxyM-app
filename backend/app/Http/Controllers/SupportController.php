@@ -45,7 +45,11 @@ class SupportController extends Controller
         $conversation->touch(); // Update updated_at timestamp
 
         $message->load('user:id,name,is_admin');
-        broadcast(new MessageSent($message, $conversation->id))->toOthers();
+        try {
+            broadcast(new MessageSent($message, $conversation->id))->toOthers();
+        } catch (\Throwable $e) {
+            // Reverb server down or unreachable - message is still saved in DB
+        }
 
         // Send FCM Push Notification to the user if they have an FCM token
         $user = $conversation->user;
@@ -68,5 +72,26 @@ class SupportController extends Controller
         
         $conversation->update(['status' => 'closed']);
         return response()->json(['message' => 'Ticket closed']);
+    }
+
+    public function getTopics(Request $request)
+    {
+        if (!$request->user()->is_admin) return response()->json(['error' => 'Forbidden'], 403);
+        return response()->json(\App\Models\SupportTopic::all());
+    }
+
+    public function storeTopic(Request $request)
+    {
+        if (!$request->user()->is_admin) return response()->json(['error' => 'Forbidden'], 403);
+        $request->validate(['name' => 'required|string|max:255']);
+        $topic = \App\Models\SupportTopic::create(['name' => $request->name]);
+        return response()->json($topic, 201);
+    }
+
+    public function deleteTopic(Request $request, \App\Models\SupportTopic $topic)
+    {
+        if (!$request->user()->is_admin) return response()->json(['error' => 'Forbidden'], 403);
+        $topic->delete();
+        return response()->json(['message' => 'Topic deleted']);
     }
 }

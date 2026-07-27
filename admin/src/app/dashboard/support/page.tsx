@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createEchoClient } from '@/lib/echo';
+
+interface SupportTopic {
+  id: number;
+  name: string;
+}
 
 interface SupportMessage {
   id: number;
@@ -28,13 +34,91 @@ interface SupportConversation {
 export default function SupportPage() {
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [activeChat, setActiveChat] = useState<SupportConversation | null>(null);
+  const [topics, setTopics] = useState<SupportTopic[]>([]);
+  const [showTopicsModal, setShowTopicsModal] = useState(false);
+  const [newTopicName, setNewTopicName] = useState('');
   const [replyText, setReplyText] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeChat?.messages?.length]);
 
   useEffect(() => {
     fetchConversations();
+    fetchTopics();
   }, []);
+
+  const fetchTopics = async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+    try {
+      const res = await fetch('http://localhost:8000/api/admin/support-topics', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) setTopics(await res.json());
+    } catch (_) {}
+  };
+
+  const handleAddTopic = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTopicName.trim()) return;
+    const token = localStorage.getItem('admin_token');
+    try {
+      const res = await fetch('http://localhost:8000/api/admin/support-topics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newTopicName.trim() })
+      });
+      if (res.ok) {
+        setNewTopicName('');
+        fetchTopics();
+      }
+    } catch (_) {}
+  };
+
+  const handleDeleteTopic = async (id: number) => {
+    const token = localStorage.getItem('admin_token');
+    try {
+      const res = await fetch(`http://localhost:8000/api/admin/support-topics/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchTopics();
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    if (!activeChat) return;
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
+    const echo = createEchoClient(token);
+    const channel = echo.private(`chat.${activeChat.id}`);
+
+    channel.listen('.message.sent', (data: { message: SupportMessage }) => {
+      setActiveChat((prev) => {
+        if (!prev || prev.id !== activeChat.id) return prev;
+        const exists = prev.messages?.some((m) => m.id === data.message.id);
+        if (exists) return prev;
+        return {
+          ...prev,
+          messages: [...(prev.messages || []), data.message],
+        };
+      });
+      fetchConversations();
+    });
+
+    return () => {
+      channel.stopListening('.message.sent');
+      echo.disconnect();
+    };
+  }, [activeChat?.id]);
 
   const fetchConversations = async () => {
     const token = localStorage.getItem('admin_token');
@@ -107,7 +191,15 @@ export default function SupportPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-3xl font-bold text-white mb-8">Support Tickets</h2>
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-3xl font-bold text-white">Support Tickets</h2>
+        <button
+          onClick={() => setShowTopicsModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded transition-colors text-sm"
+        >
+          Manage Subject Topics ({topics.length})
+        </button>
+      </div>
       
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-0">
         
@@ -167,6 +259,7 @@ export default function SupportPage() {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Chat Input */}
@@ -198,6 +291,47 @@ export default function SupportPage() {
         </div>
 
       </div>
+
+      {/* Topics Management Modal */}
+      {showTopicsModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 border border-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Manage Subject Topics</h3>
+              <button onClick={() => setShowTopicsModal(false)} className="text-gray-400 hover:text-white">✕</button>
+            </div>
+            
+            <form onSubmit={handleAddTopic} className="flex gap-2 mb-6">
+              <input
+                type="text"
+                value={newTopicName}
+                onChange={(e) => setNewTopicName(e.target.value)}
+                placeholder="New topic name..."
+                required
+                className="flex-1 p-2 bg-gray-800 border border-gray-700 text-white rounded outline-none focus:border-blue-500 text-sm"
+              />
+              <button type="submit" className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded text-sm transition-colors">
+                Add
+              </button>
+            </form>
+
+            <div className="max-h-60 overflow-y-auto divide-y divide-gray-800">
+              {topics.map((t) => (
+                <div key={t.id} className="py-2.5 flex justify-between items-center text-sm text-gray-200">
+                  <span>{t.name}</span>
+                  <button
+                    onClick={() => handleDeleteTopic(t.id)}
+                    className="text-red-400 hover:text-red-300 text-xs font-bold bg-red-500/10 hover:bg-red-500/20 px-2 py-1 rounded transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+              {topics.length === 0 && <div className="text-gray-500 text-center py-4 text-sm">No custom topics found.</div>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

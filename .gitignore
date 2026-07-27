@@ -1,0 +1,4 @@
+node_modules/
+composer.phar
+backend/.env
+*.log

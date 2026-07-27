@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
-use App\Models\Notification;
 use App\Models\User;
 use App\Events\NotificationSent;
 use Illuminate\Http\Request;

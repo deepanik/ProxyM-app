@@ -39,9 +39,16 @@ export default function NotificationsPage() {
         }
       });
       
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('admin_token');
+        router.push('/login');
+        return;
+      }
+
       if (!res.ok) throw new Error('Failed to fetch notifications');
       const data = await res.json();
       setNotifications(data);
+      setError('');
     } catch (err: any) {
       setError(err.message);
     }
@@ -92,11 +99,21 @@ export default function NotificationsPage() {
     }
   };
 
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-
   return (
     <div>
       <h2 className="text-3xl font-bold text-white mb-8">Push Notifications</h2>
+      
+      {error && (
+        <div className="bg-red-900/40 border border-red-800 text-red-300 p-4 rounded-lg mb-6 flex justify-between items-center">
+          <span>Error loading notifications: {error}</span>
+          <button 
+            onClick={() => { localStorage.removeItem('admin_token'); router.push('/login'); }}
+            className="bg-red-800 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded font-bold"
+          >
+            Re-login
+          </button>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         

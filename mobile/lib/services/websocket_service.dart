@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:dart_pusher_channels/dart_pusher_channels.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile/services/api_service.dart';
 
 class WebSocketService {
@@ -15,29 +17,31 @@ class WebSocketService {
   String? _token;
 
   Future<void> init(String token) async {
-    if (client != null) return;
+    if (client != null && _token == token) return;
     _token = token;
 
     try {
+      final host = Platform.isAndroid ? '10.0.2.2' : '127.0.0.1';
       final options = PusherChannelsOptions.fromHost(
         scheme: 'ws',
-        host: '10.0.2.2',
+        host: host,
         port: 8080,
-        key: 'reverb_key_local',
+        key: 'proxym_reverb_key',
         shouldSupplyMetadataQueries: true,
       );
 
       client = PusherChannelsClient.websocket(
         options: options,
         connectionErrorHandler: (exception, trace, refresh) {
+          print('[WS Error] $exception');
           refresh();
         },
       );
 
+      _connectionSub?.cancel();
       _connectionSub = client?.onConnectionEstablished.listen((_) {
-        for (final channel in _channels.values) {
-          channel.subscribeIfNotUnsubscribed();
-        }
+        print('[WS Connection Established]');
+        _subscribeAllChannels();
       });
 
       client?.connect();
@@ -46,7 +50,26 @@ class WebSocketService {
     }
   }
 
-  void listenToChannel(String channelName, String eventName, Function(dynamic) callback) {
+  void _subscribeAllChannels() {
+    for (final channel in _channels.values) {
+      try {
+        print('[WS Subscribing] Channel: ${channel.name}');
+        channel.subscribeIfNotUnsubscribed();
+      } catch (e) {
+        print('[WS Sub Error] $e');
+      }
+    }
+  }
+
+  Future<void> listenToChannel(String channelName, String eventName, Function(dynamic) callback) async {
+    if (_token == null) {
+      try {
+        _token = await const FlutterSecureStorage().read(key: 'auth_token');
+      } catch (_) {}
+    }
+    if (_token != null && client == null) {
+      await init(_token!);
+    }
     if (client == null) return;
 
     final fullChannel = channelName.startsWith('private-') ? channelName : 'private-$channelName';
@@ -64,27 +87,24 @@ class WebSocketService {
         ),
       );
       _channels[fullChannel] = channel;
-      channel.subscribeIfNotUnsubscribed();
-      
-      // DEBUG: Listen to ALL events on this channel to see what Laravel is sending
-      channel.bindToAll().listen((event) {
-        print('====== WEBSOCKET EVENT RECEIVED ======');
-        print('Channel: ${event.channelName}');
-        print('Event Name: ${event.name}');
-        print('Event Data: ${event.data}');
-        print('======================================');
-      });
     }
 
+    _subscribeAllChannels();
+
     final key = '$fullChannel:$eventName';
-    _eventSubs[key] = channel.bind(eventName).listen((event) {
-      dynamic data = event.data;
-      if (data is String) {
-        try {
-          data = jsonDecode(data);
-        } catch (_) {}
+    _eventSubs[key]?.cancel();
+    _eventSubs[key] = channel.bindToAll().listen((event) {
+      final name = event.name;
+      print('[Flutter WS Event Received] ${event.channelName} -> $name: ${event.data}');
+      if (name == eventName || name == '.$eventName' || name.endsWith(eventName) || name.contains('MessageSent')) {
+        dynamic data = event.data;
+        if (data is String) {
+          try {
+            data = jsonDecode(data);
+          } catch (_) {}
+        }
+        callback(data);
       }
-      callback(data);
     });
   }
 

@@ -26,13 +26,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _onNewMessage(dynamic data) {
     if (!mounted) return;
-    final payload = data['message'];
-    if (payload != null) {
-      final newMsg = SupportMessage.fromJson(Map<String, dynamic>.from(payload));
-      setState(() {
-        _chat?.messages?.add(newMsg);
-      });
-      _scrollToBottom();
+    try {
+      final payload = data != null && data is Map ? (data['message'] ?? data) : null;
+      if (payload != null && payload is Map) {
+        final newMsg = SupportMessage.fromJson(Map<String, dynamic>.from(payload));
+        setState(() {
+          if (_chat != null) {
+            final currentMsgs = _chat!.messages ?? [];
+            final exists = currentMsgs.any((m) => m.id == newMsg.id);
+            if (!exists) {
+              _chat = SupportConversation(
+                id: _chat!.id,
+                subject: _chat!.subject,
+                status: _chat!.status,
+                updatedAt: _chat!.updatedAt,
+                messagesCount: _chat!.messagesCount + 1,
+                messages: [...currentMsgs, newMsg],
+              );
+            }
+          } else {
+            _chat = SupportConversation(
+              id: widget.ticketId,
+              subject: 'Support',
+              status: 'open',
+              updatedAt: DateTime.now().toIso8601String(),
+              messagesCount: 1,
+              messages: [newMsg],
+            );
+          }
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      print('Error parsing live message: $e');
     }
   }
 
@@ -58,15 +84,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
-      });
-    }
+      }
+    });
   }
 
   Future<void> _sendMessage() async {
@@ -77,7 +103,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     
     try {
       await ref.read(supportProvider.notifier).replyToTicket(widget.ticketId, msg);
-      await _loadChat(); // reload to get the new message
+      await _loadChat();
+      _scrollToBottom();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send message')));
     }

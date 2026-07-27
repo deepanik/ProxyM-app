@@ -6,41 +6,87 @@ import '../../providers/support_provider.dart';
 class SupportListScreen extends ConsumerWidget {
   const SupportListScreen({super.key});
 
-  void _createNewTicket(BuildContext context, WidgetRef ref) {
-    final subjectController = TextEditingController();
+  Future<void> _createNewTicket(BuildContext context, WidgetRef ref) async {
+    final fetchedTopics = await ref.read(supportProvider.notifier).fetchTopics();
+    final predefinedSubjects = [...fetchedTopics, 'Other'];
+    String selectedSubjectOption = predefinedSubjects.first;
+    final customSubjectController = TextEditingController();
     final messageController = TextEditingController();
+
+    if (!context.mounted) return;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('New Support Ticket'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: subjectController,
-              decoration: const InputDecoration(labelText: 'Subject', hintText: 'e.g. Proxy failing to connect'),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('New Support Ticket'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Subject Topic', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  value: selectedSubjectOption,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: predefinedSubjects.map((subject) {
+                    return DropdownMenuItem(
+                      value: subject,
+                      child: Text(subject, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => selectedSubjectOption = val);
+                    }
+                  },
+                ),
+                if (selectedSubjectOption == 'Other') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: customSubjectController,
+                    decoration: const InputDecoration(
+                      labelText: 'Custom Subject',
+                      hintText: 'Enter your issue subject...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: messageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Message',
+                    hintText: 'Describe your issue in detail...',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              decoration: const InputDecoration(labelText: 'Message'),
-              maxLines: 3,
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final finalSubject = selectedSubjectOption == 'Other'
+                    ? customSubjectController.text.trim()
+                    : selectedSubjectOption;
+
+                if (finalSubject.isNotEmpty && messageController.text.trim().isNotEmpty) {
+                  await ref.read(supportProvider.notifier).createTicket(finalSubject, messageController.text.trim());
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Submit'),
             ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (subjectController.text.isNotEmpty && messageController.text.isNotEmpty) {
-                await ref.read(supportProvider.notifier).createTicket(subjectController.text, messageController.text);
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Submit'),
-          ),
-        ],
       ),
     );
   }

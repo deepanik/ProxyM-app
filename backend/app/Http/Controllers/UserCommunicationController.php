@@ -93,8 +93,17 @@ class UserCommunicationController extends Controller
         $conversation->touch();
 
         $message->load('user:id,name,is_admin');
-        broadcast(new MessageSent($message, $conversation->id))->toOthers();
+        try {
+            broadcast(new MessageSent($message, $conversation->id))->toOthers();
+        } catch (\Throwable $e) {
+            // Reverb server down or unreachable - message is still saved in DB
+        }
 
         return response()->json($message, 201);
+    }
+
+    public function getSupportTopics()
+    {
+        return response()->json(\App\Models\SupportTopic::pluck('name'));
     }
 }

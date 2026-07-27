@@ -17,12 +17,13 @@ class SupportMessage {
   });
 
   factory SupportMessage.fromJson(Map<String, dynamic> json) {
+    final user = json['user'];
     return SupportMessage(
-      id: json['id'],
-      message: json['message'],
-      createdAt: json['created_at'],
-      userName: json['user']['name'],
-      isAdmin: json['user']['is_admin'] == 1 || json['user']['is_admin'] == true,
+      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      message: json['message']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      userName: user != null && user is Map && user['name'] != null ? user['name'].toString() : 'Support',
+      isAdmin: user != null && user is Map ? (user['is_admin'] == 1 || user['is_admin'] == true || user['is_admin'] == '1') : false,
     );
   }
 }
@@ -104,6 +105,21 @@ class SupportNotifier extends Notifier<List<SupportConversation>> {
     } catch (e) {
       print('Failed to reply: $e');
       throw e;
+    }
+  }
+
+  Future<List<String>> fetchTopics() async {
+    try {
+      final response = await _apiService.client.get('/support-topics');
+      final List<dynamic> data = response.data;
+      return data.map((e) => e.toString()).toList();
+    } catch (e) {
+      return [
+        'Proxy Connection Failing',
+        'Slow Proxy Speed / High Latency',
+        'IP Whitelist & Authentication Request',
+        'Extension & App Integration Bug',
+      ];
     }
   }
 }

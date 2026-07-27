@@ -7,6 +7,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <h1 className="text-2xl font-bold text-white mb-8">ProxyM Admin</h1>
         <nav className="flex-1 space-y-2">
           <a href="/dashboard" className="block text-gray-300 hover:text-white px-4 py-2 rounded bg-gray-800">Dashboard</a>
+          <a href="/dashboard/system-proxies" className="block text-gray-400 hover:text-white hover:bg-gray-800 px-4 py-2 rounded transition-colors">System Proxies (Free)</a>
           <a href="/dashboard/users" className="block text-gray-400 hover:text-white hover:bg-gray-800 px-4 py-2 rounded transition-colors">Users</a>
           <a href="/dashboard/proxies" className="block text-gray-400 hover:text-white hover:bg-gray-800 px-4 py-2 rounded transition-colors">Proxies</a>
           <a href="/dashboard/plans" className="block text-gray-400 hover:text-white hover:bg-gray-800 px-4 py-2 rounded transition-colors">Plans</a>
