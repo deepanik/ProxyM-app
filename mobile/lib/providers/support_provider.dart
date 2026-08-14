@@ -88,7 +88,7 @@ class SupportNotifier extends Notifier<List<SupportConversation>> {
       fetchTickets();
     } catch (e) {
       print('Failed to create ticket: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -104,7 +104,7 @@ class SupportNotifier extends Notifier<List<SupportConversation>> {
       fetchTickets();
     } catch (e) {
       print('Failed to reply: $e');
-      throw e;
+      rethrow;
     }
   }
 

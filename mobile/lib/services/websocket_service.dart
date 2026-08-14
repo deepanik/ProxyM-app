@@ -26,7 +26,7 @@ class WebSocketService {
         scheme: 'ws',
         host: host,
         port: 8080,
-        key: 'proxym_reverb_key',
+        key: 'reverb_key_local',
         shouldSupplyMetadataQueries: true,
       );
 

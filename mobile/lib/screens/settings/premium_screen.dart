@@ -77,6 +77,7 @@ class PremiumScreen extends ConsumerWidget {
                                 Navigator.pop(context);
                               }
                             } catch (e) {
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to subscribe')));
                             }
                           },

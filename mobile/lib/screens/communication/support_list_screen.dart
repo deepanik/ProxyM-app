@@ -28,7 +28,7 @@ class SupportListScreen extends ConsumerWidget {
                 const Text('Subject Topic', style: TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
-                  value: selectedSubjectOption,
+                  initialValue: selectedSubjectOption,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),

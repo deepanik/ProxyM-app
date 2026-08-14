@@ -106,6 +106,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await _loadChat();
       _scrollToBottom();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to send message')));
     }
   }

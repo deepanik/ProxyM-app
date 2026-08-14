@@ -1,27 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../providers/proxy_provider.dart';
 
-class ProxyGroupsScreen extends StatelessWidget {
+class ProxyGroupsScreen extends ConsumerWidget {
   const ProxyGroupsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final proxies = ref.watch(proxyProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Proxy Groups')),
-      body: ListView.builder(
-        itemCount: 1, // Mock
-        itemBuilder: (context, index) {
-          return ListTile(
+      body: ListView(
+        children: [
+          ListTile(
             leading: const Icon(Icons.folder),
-            title: const Text('Default Group'),
-            subtitle: const Text('5 proxies'),
-            onTap: () => context.pop(), // Go back to proxy list
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {}, // Add group logic later
-        child: const Icon(Icons.add),
+            title: const Text('All Proxies'),
+            subtitle: Text('${proxies.length} proxies'),
+            onTap: () => context.pop(),
+          ),
+        ],
       ),
     );
   }

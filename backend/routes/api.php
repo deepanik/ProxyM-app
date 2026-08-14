@@ -27,6 +27,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::apiResource('proxies', ProxyController::class);
     Route::apiResource('proxy-groups', ProxyGroupController::class);
 
+    // App Settings Sync
+    Route::get('/settings', function (Request $request) {
+        return response()->json($request->user()->settings ?? []);
+    });
+    Route::post('/settings', function (Request $request) {
+        return response()->json(['status' => 'success']);
+    });
+
     // Public / System Proxies (User Endpoints)
     Route::get('/public-proxies', [SystemProxyController::class, 'indexUser']);
     Route::post('/public-proxies/{systemProxy}/claim', [SystemProxyController::class, 'claim']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
@@ -33,14 +34,15 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        if (!auth()->attempt($request->only('email', 'password'))) {
+        if (!Auth::attempt($request->only('email', 'password'))) {
             return response()->json(['message' => 'Invalid login details'], 401);
         }
 
-        $user = User::where('email', $request['email'])->firstOrFail();
+        /** @var User $user */
+        $user = User::where('email', $request->email)->firstOrFail();
 
-        if ($user->is_blocked) {
-            auth()->logout();
+        if ($user->getAttribute('is_blocked')) {
+            Auth::logout();
             return response()->json(['message' => 'Your account has been blocked'], 403);
         }
 

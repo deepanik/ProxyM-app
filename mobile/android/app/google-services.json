@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "281463807739",
+    "project_id": "proxym-79243",
+    "storage_bucket": "proxym-79243.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281463807739:android:1196789a6436a67fa89a5e",
+        "android_client_info": {
+          "package_name": "com.proxym.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgEEIa3c57hlnFmcQz-zh9Qsdoq19qn6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:281463807739:android:46f53f8d77efc4f2a89a5e",
+        "android_client_info": {
+          "package_name": "com.proxym.com"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgEEIa3c57hlnFmcQz-zh9Qsdoq19qn6Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

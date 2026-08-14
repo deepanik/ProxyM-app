@@ -53,7 +53,7 @@ class PlanNotifier extends AsyncNotifier<List<Plan>> {
       await _apiService.client.post('/subscribe', data: {'plan_id': planId});
     } catch (e) {
       print('Failed to subscribe: $e');
-      throw e;
+      rethrow;
     }
   }
 }
